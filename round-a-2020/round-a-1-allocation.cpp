@@ -1,34 +1,46 @@
-#include<iostream>
-#include<vector>
-#include<string>
-#include<algorithm>
-#include <sstream>
-#include <queue>
-#include <iostream>
+#include <bits/stdc++.h>
 using namespace std;
 
-int main(){
+void solve() {
+
+  // 1. Get inputs
+  int number_house, budget;
+  cin >> number_house >> budget;
+  vector<int> prices(number_house);
+  for (int i = 0; i < number_house; ++i) {
+    int in;
+    cin >> in;
+    prices[i] = in;
+  }
+
+  // 2. Sort house price from low to high
+  sort(prices.begin(), prices.end());
+
+  // 3. Buy houses from the cheapest to the most expensive
+  int answer = 0;
+
+  for (int i = 0; i < number_house; ++i) {
+    int current_house_price = prices[i];
+
+    if (budget >= current_house_price) {
+      budget -= current_house_price;
+      answer ++;
+    }
+  }
+
+  cout << answer << "\n";
+}
+
+int main() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(0);
+
   int t;
   cin >> t;
-  for(int i = 0; i < t; ++i){
-    vector<int> prices;
-    int number, budget;
-    cin >> number >> budget;
-    for(int j = 0 ; j < number; ++j){
-        int price = 0;
-      cin >> price;
-      prices.push_back(price);
-    }
-    sort(prices.begin(), prices.end());
-    int ans = 0;
-    for(int z = 0; z < number; ++z){
-      if(budget >= prices[z]){
-        budget -= prices[z];
-        ans ++;
-      }else{
-        break;
-      }
-    }
-    cout << "Case #" << i+1 << ": " << ans << "\n";
+
+  for (int i = 0; i < t; ++i) {
+    cout << "Case #" << i+1 << ": " ;
+    solve();
   }
+
 }
