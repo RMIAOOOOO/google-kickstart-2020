@@ -1,111 +1,90 @@
-#include<iostream>
-#include<vector>
-#include<string>
-#include<algorithm>
-#include<sstream>
-#include<queue>
-#include<iostream>
-#include<math.h>
+#include <bits/stdc++.h>
 using namespace std;
 
-void solve(){
+void solve() {
 
-  // 1. Input
-  int width, height, left, up, right, down;
-  cin >> width >> height >> left >> up >> right >> down;
+  // 1. Get Input
+  int map_width, map_height, hole_left, hole_up, hole_right, hole_down;
+  cin >> map_width >> map_height >> hole_left >> hole_up >> hole_right >> hole_down;
 
-  // 2. List the possible destination
-  int urLeft= right + 1;
-  int urDown = up - 1;
-  int dlRight = left - 1;
-  int dlUp = down + 1;
+  // 2. List the hole's first upper right block's x and y
+  //    List the hole's first lower left block's x and y
+  int upper_right_path_valid_x = hole_right + 1;
+  int upper_right_path_valid_y = hole_up - 1;
+  int lower_left_path_valid_x = hole_left - 1;
+  int lower_left_path_valid_y = hole_down + 1;
 
-  vector<pair<int, int> > urBlocks(0);
-  vector<pair<int, int> > dlBlocks(0);
-
-  int urWidth = width - right;
-  int urHeight = up - 1;
-  if(urWidth != 0 && urHeight != 0){
-    urBlocks.resize(urHeight);
-    for(int i = 0 ; i < urHeight; ++i){
-      urBlocks[i] = make_pair( urLeft + i , urDown - i );
+  // 3. List the two paths's checkpoint blocks at the diagonal of hole.
+  //      Take into account the implicit path outside the map's boundary.
+  //    The check points blocks are in the form: pair(x,y)
+  vector<pair<int, int> > upper_right_path_blocks(0);
+  int upper_right_path_width = map_width - hole_right;
+  int upper_right_path_height = hole_up - 1;
+  if (upper_right_path_width > 0 && upper_right_path_height > 0) {
+    upper_right_path_blocks.resize(upper_right_path_height);
+    for (int i = 0 ; i < upper_right_path_height; ++i) {
+      upper_right_path_blocks[i] = make_pair(upper_right_path_valid_x + i , upper_right_path_valid_y - i);
     }
   }
 
-  reverse(urBlocks.begin(), urBlocks.end());
-
-  int dlWidth = left - 1;
-  int dlHeight = height - down;
-  if(dlWidth != 0 && dlHeight != 0){
-    dlBlocks.resize(dlWidth);
-    for(int i = 0 ; i < dlWidth; ++i){
-      dlBlocks[i] = make_pair( dlRight - i, dlUp + i);
+  vector<pair<int, int> > lower_left_path_blocks(0);
+  int lower_left_path_width = hole_left - 1;
+  int lower_left_path_height = map_height - hole_down;
+  if (lower_left_path_width > 0 && lower_left_path_height > 0) {
+    lower_left_path_blocks.resize(lower_left_path_width);
+    for (int i = 0 ; i < lower_left_path_width; ++i) {
+      lower_left_path_blocks[i] = make_pair(lower_left_path_valid_x - i, lower_left_path_valid_y + i);
     }
   }
 
-  reverse(dlBlocks.begin(), dlBlocks.end());
-
-//  cout << "up right  \n";
-//  for(int i = 0 ; i < urBlocks.size(); ++i){
-//    cout << urBlocks[i].first << " " << urBlocks[i].second << "\n";
-//  }
-//  cout << "down left  \n";
-//  for(int i = 0 ; i < dlBlocks.size(); ++i){
-//    cout << dlBlocks[i].first << " " << dlBlocks[i].second << "\n";
-//  }
-
-  // 3. For each possible destination, calculate the probability, including the oversafe ones.
-
-  // 3.1 Prepare log2 n!
-  vector<double> log2Lookup(width + height);
-  log2Lookup[0] = log2(1.0);
-  if(max(width,height) > 1) log2Lookup[1] = log2(1.0);
-  for(int i = 2; i < log2Lookup.size(); ++i){
-    log2Lookup[i] = log2Lookup[i-1] + log2(i);
+  // 4. Prepare the look up table of log_2(n!) to be used in the following step
+  //    Ex. lookup[3] = log_2(6)
+  vector<double> log_base_2_factorial_n_lookup(map_width + map_height);
+  log_base_2_factorial_n_lookup[0] = log2(1.0);
+  if (max(map_width,map_height) > 1) log_base_2_factorial_n_lookup[1] = log2(1.0);
+  for (int i = 2; i < log_base_2_factorial_n_lookup.size(); ++i) {
+    log_base_2_factorial_n_lookup[i] = log_base_2_factorial_n_lookup[i-1] + log2(i);
   }
 
 
-//  cout << "log2Lookup table\n";
-//  for(int i = 0; i < log2Lookup.size(); ++i){
-//    cout << log2Lookup[i] << " ";
-//  }
-//  cout << "\n";
-
-  double urAns = 0;
-  for(int i = 0; i < urBlocks.size(); ++i){
-    int base = urBlocks[0].first + urBlocks[0].second - 2;
-    double log2N = log2Lookup[base];
-    int k = i;
-    double log2K = log2Lookup[k];
-    double log2NmK = log2Lookup[base-k];
-    double exp = log2N - log2K - log2NmK - base;
-    urAns += pow(2.0, exp);
-//    cout << "!" << urAns << " ";
+  // 5. For each possible destination, calculate the probability in log form
+  //      first then add up as exponential to avoid overflow
+  //    C(n,k) / 2^n = 2^(log2(C(n,k) / 2^n))
+  //    log2(C(n,k)/2^n) = log2(n!) - log2(k!) - log2((n-k!)) - n
+  double upper_right_answer = 0;
+  for (int k = 0; k < upper_right_path_blocks.size(); ++k) {
+    int n = upper_right_path_blocks[0].first + upper_right_path_blocks[0].second - 2;
+    double log_base_2_factorial_n = log_base_2_factorial_n_lookup[n];
+    double log_base_2_factorial_k = log_base_2_factorial_n_lookup[k];
+    double log_base_2_factorial_n_minus_k = log_base_2_factorial_n_lookup[n - k];
+    double answer_as_exponent_of_2 = log_base_2_factorial_n - log_base_2_factorial_k - log_base_2_factorial_n_minus_k - n;
+    upper_right_answer += pow(2.0, answer_as_exponent_of_2);
   }
 
-  double dlAns = 0;
-  for(int i = 0; i < dlBlocks.size(); ++i){
-    int base = dlBlocks[0].first + dlBlocks[0].second - 2;
-    double log2N = log2Lookup[base];
-    int k = i;
-    double log2K = log2Lookup[k];
-    double log2NmK = log2Lookup[base-k];
-    double exp = log2N - log2K - log2NmK - base;
-    dlAns += pow(2.0, exp);
-//    cout << "@" << dlAns << " ";
+  double lower_left_answer = 0;
+  for (int k = 0; k < lower_left_path_blocks.size(); ++k) {
+    int n = lower_left_path_blocks[0].first + lower_left_path_blocks[0].second - 2;
+    double log_base_2_factorial_n = log_base_2_factorial_n_lookup[n];
+    double log_base_2_factorial_k = log_base_2_factorial_n_lookup[k];
+    double log_base_2_factorial_n_minus_k = log_base_2_factorial_n_lookup[n-k];
+    double answer_as_exponent_of_2 = log_base_2_factorial_n - log_base_2_factorial_k - log_base_2_factorial_n_minus_k - n;
+    lower_left_answer += pow(2.0, answer_as_exponent_of_2);
   }
-  // 4. Add up the result
-  double ans = urAns + dlAns;
-  cout << ans << "\n";
 
-
+  // 4. Add up possibility from upper right and lower left paths to get total answer
+  double total_answer = upper_right_answer + lower_left_answer;
+  cout << total_answer << "\n";
 }
 
-int main(){
+int main() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(0);
+
   int t;
   cin >> t;
-  for(int i = 0; i < t; ++i){
-    cout << "Case #" << i+1 << ": ";
+
+  for (int i = 0; i < t; ++i) {
+    cout << "Case #" << i+1 << ": " ;
     solve();
   }
 }
