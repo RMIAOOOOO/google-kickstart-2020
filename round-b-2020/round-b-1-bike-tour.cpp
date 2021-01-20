@@ -1,37 +1,38 @@
-#include<iostream>
-#include<vector>
-#include<string>
-#include<algorithm>
-#include<sstream>
-#include<queue>
-#include<iostream>
+#include <bits/stdc++.h>
 using namespace std;
 
-void solve(){
+void solve() {
 
-  int N;
-  cin >> N;
-  vector<int> heights(N);
-  for(int i = 0; i < N; ++i){
+  // 1. Get Input
+  int number_checkpoint;
+  cin >> number_checkpoint;
+  vector<int> heights(number_checkpoint);
+  for (int i = 0; i < N; ++i) {
     int in;
     cin >> in;
     heights[i] = in;
   }
 
-  int ans = 0;
-  for(int i = 1; i < N - 1; ++i){
-    if(heights[i] > heights[i-1] && heights[i] > heights[i+1]){
-      ans ++;
+  // 2.Count valid checkpoints
+  int answer = 0;
+  for (int i = 1; i < N - 1; ++i) {
+    if (heights[i] > heights[i-1] && heights[i] > heights[i+1]) {
+      answer ++;
     }
   }
-  cout << ans << endl;
+
+  cout << answer << endl;
 }
 
-int main(){
+int main() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(0);
+
   int t;
   cin >> t;
-  for(int i = 0; i < t; ++i){
-    cout << "Case #" << i+1 << ": ";
+
+  for (int i = 0; i < t; ++i) {
+    cout << "Case #" << i+1 << ": " ;
     solve();
   }
 }
