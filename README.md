@@ -13,3 +13,7 @@ The code tries take reference from the top winner of Google Kickstart for cleane
 | A     | 2        | 21%                       | Dynamic Programming |
 | A     | 3        | 14%                       | Binary Search       |
 | A     | 4        | 8%                        | Trie, DFS           |
+| B     | 1        | 90%                       |                     |
+| B     | 2        | 56%                       | Greedy              |
+| B     | 3        | 27%                       | Stack, Recursion    |
+| B     | 4        | 1%                        | Probability, Log    |
