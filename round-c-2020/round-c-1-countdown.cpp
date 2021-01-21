@@ -1,66 +1,59 @@
-#include<iostream>
-#include<vector>
-#include<string>
-#include<algorithm>
-#include<sstream>
-#include<queue>
-#include<stack>
-#include<iostream>
+#include <bits/stdc++.h>
 using namespace std;
 
 long long LIMIT = 1e9;
 
-void solve(){
+void solve() {
 
-  int N, K;
-  cin >> N >> K;
-
-  vector<int> inputs(N);
-  for(int i = 0; i < N; ++i){
+  // 1. Get Input
+  int num_number, k_countdown;
+  cin >> num_number >> k_countdown;
+  vector<int> numbers(num_number);
+  for (int i = 0; i < num_number; ++i) {
     int in;
     cin >> in;
-    inputs[i] = in;
+    numbers[i] = in;
   }
 
-  bool isCurrentlyCountingDown = false;
-  int currentlyCountdownValue = K;
-  int ans = 0 ;
+  // 2. Iterate through the numbers, start counting down when meet K.
+  bool is_currently_counting_down = false;
+  int currently_count_down_to = k_countdown;
+  int answer = 0 ;
 
-  for(int i = 0; i < N; ++i){
-    if(isCurrentlyCountingDown){
-      if(inputs[i] == currentlyCountdownValue){
-        currentlyCountdownValue--;
-        if(currentlyCountdownValue == 0){
-          ans ++;
-          isCurrentlyCountingDown = false;
-          currentlyCountdownValue = K;
+  for (int i = 0; i < num_number; ++i) {
+    if (is_currently_counting_down) {
+      if (numbers[i] == currently_count_down_to) {
+        currently_count_down_to--;
+        if (currently_count_down_to == 0) {
+          answer ++;
+          is_currently_counting_down = false;
+          currently_count_down_to = k_countdown;
         }
-      }else{
-        if(inputs[i] == K){
-          currentlyCountdownValue = K - 1;
-          isCurrentlyCountingDown = true;
-        }else{
-          isCurrentlyCountingDown = false;
-          currentlyCountdownValue = K;
-        }
+      } else {
+        currently_count_down_to = k_countdown;
+        i--;
+        is_currently_counting_down = false;
       }
-    }else{
-      if(inputs[i] == K){
-        currentlyCountdownValue = K - 1;
-        isCurrentlyCountingDown = true;
+    } else {
+      if( numbers[i] == k_countdown) {
+        currently_count_down_to = k_countdown - 1;
+        is_currently_counting_down = true;
       }
     }
   }
 
-  cout << ans << endl;
+  cout << answer << endl;
 }
 
-int main(){
+int main() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(0);
 
   int t;
   cin >> t;
-  for(int i = 0; i < t; ++i){
-    cout << "Case #" << i+1 << ": ";
+
+  for (int i = 0; i < t; ++i) {
+    cout << "Case #" << i+1 << ": " ;
     solve();
   }
 }
