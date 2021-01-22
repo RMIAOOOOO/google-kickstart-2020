@@ -1,12 +1,4 @@
-
-#include<iostream>
-#include<vector>
-#include<string>
-#include<algorithm>
-#include<sstream>
-#include<queue>
-#include<iostream>
-#include<unordered_map>
+#include <bits/stdc++.h>
 using namespace std;
 
 class SegmentTreeNode{
@@ -117,16 +109,6 @@ void solve(){
     normalSumTree->addNode(i+1, newVal);
   }
 
-//
-//  for(int i = 0; i < N; ++i){
-//    cout << cumulativeCandiesTree->getSum(i+1, i+1) << " ";
-//  }
-//  cout << "\n";
-//  for(int i = 0; i < N; ++i){
-//    cout << normalSumTree->getSum(i+1, i+1) << " ";
-//  }
-//  cout << "\n";
-
   // 4. Add query logic
   long long ans = 0;
   for(int i = 0; i < Q; ++i){
@@ -149,24 +131,18 @@ void solve(){
     }
   }
 
-//
-//  for(int i = 0; i < N; ++i){
-//    cout << cumulativeCandiesTree->getSum(i+1, i+1) << " ";
-//  }
-//  cout << "\n";
-//  for(int i = 0; i < N; ++i){
-//    cout << normalSumTree->getSum(i+1, i+1) << " ";
-//  }
-//  cout << "\n";
-
   cout << ans << "\n";
 }
 
-int main(){
+int main() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(0);
+
   int t;
   cin >> t;
-  for(int i = 0; i < t; ++i){
-    cout << "Case #" << i+1 << ": ";
+
+  for (int i = 0; i < t; ++i) {
+    cout << "Case #" << i+1 << ": " ;
     solve();
   }
 }
