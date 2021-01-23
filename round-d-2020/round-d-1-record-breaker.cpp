@@ -16,7 +16,7 @@ void solve(){
   int ans = 0;
   int history_high = -1;
 
-  // 2. Iterate through array and check condition match
+  // 2. Iterate through array and check condition
   for (int i = 0; i < N; ++i) {
     if(V[i] > history_high  && (i == N-1 || V[i] > V[i+1])) {
       ans ++;
