@@ -17,3 +17,7 @@ The code tries take reference from the top winner of Google Kickstart for cleane
 | B     | 2        | 56%                       | Greedy              |
 | B     | 3        | 27%                       | Stack, Recursion    |
 | B     | 4        | 1%                        | Probability, Log    |
+| C     | 1        | 66%                       |                     |
+| C     | 2        | 19%                       | Topological Sort    |
+| C     | 3        | 5%                        | Prefix Sum          |
+| C     | 4        | 5%                        | Segment Tree        |
