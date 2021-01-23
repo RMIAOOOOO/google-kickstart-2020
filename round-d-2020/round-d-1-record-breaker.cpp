@@ -1,46 +1,42 @@
-#include<iostream>
-#include<vector>
-#include<string>
-#include<algorithm>
-#include<sstream>
-#include<queue>
-#include<stack>
-#include<iostream>
-#include<unordered_set>
+#include <bits/stdc++.h>
 using namespace std;
-
-long long LIMIT = 1e9;
 
 void solve(){
 
+  // 1. Get Input
   int N;
   cin >> N;
   vector<int> V(N);
-  for(int i = 0 ; i < N; ++i){
+  for (int i = 0 ; i < N; ++i) {
     int in;
     cin >> in;
     V[i] = in;
   }
 
   int ans = 0;
-  int historyHigh = -1;
+  int history_high = -1;
 
-  for(int i = 0; i < N; ++i){
-    if(V[i] > historyHigh && (i == N-1 || V[i] > V[i+1]) ){
+  // 2. Iterate through array and check condition match
+  for (int i = 0; i < N; ++i) {
+    if(V[i] > history_high  && (i == N-1 || V[i] > V[i+1])) {
       ans ++;
     }
-    historyHigh = max(historyHigh, V[i]);
+    history_high  = max(history_high , V[i]);
   }
 
   cout << ans << endl;
 }
 
-int main(){
+int main() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(0);
 
   int t;
   cin >> t;
-  for(int i = 0; i < t; ++i){
-    cout << "Case #" << i+1 << ": ";
+
+  for (int i = 0; i < t; ++i) {
+    cout << "Case #" << i+1 << ": " ;
     solve();
   }
 }
+
