@@ -25,3 +25,7 @@ The code tries take reference from the top winner of Google Kickstart for cleane
 | D     | 2        | 34%                       | Greedy              |
 | D     | 3        | 5%                        | DFS, Probability    |
 | D     | 4        | 1%                        | Stack, Lowest Common Ancestor|
+| E     | 1        | 78%                       |                     |
+| E     | 2        | 21%                       |                     |
+| E     | 3        | 3%                        | Priority Queue      |
+| E     | 4        | 1%                        | Dijkstra, Priority Queue|
