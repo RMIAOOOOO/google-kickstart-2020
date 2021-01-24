@@ -21,3 +21,7 @@ The code tries take reference from the top winner of Google Kickstart for cleane
 | C     | 2        | 19%                       | Topological Sort    |
 | C     | 3        | 5%                        | Prefix Sum          |
 | C     | 4        | 5%                        | Segment Tree        |
+| D     | 1        | 67%                       |                     |
+| D     | 2        | 34%                       | Greedy              |
+| D     | 3        | 5%                        | DFS, Probability    |
+| D     | 4        | 1%                        | Stack, Lowest Common Ancestor|
