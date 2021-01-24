@@ -1,177 +1,164 @@
-#include<iostream>
-#include<vector>
-#include<string>
-#include<algorithm>
-#include<sstream>
-#include<queue>
-#include<iostream>
+#include <bits/stdc++.h>
 using namespace std;
 
-int translateToStringIndex(int row, int col){
+enum player
+{
+  Alma = 0,
+  Bertha = 1
+};
+
+// Translate row, col into index in string represented museum
+// Ex. museum   (2, 2), which is row 3 position 3, will return 6, which is 7th in string
+int translateToStringIndex(int row, int col) {
   return row * row + col;
 }
 
-int getCurrentPlayerRowsAndPosition(string currentState, int round){
-  int targetChar = (round == 0 ? 'A' : 'B');
+// 3.1  Get current player row and position
+void getCurrentPlayerRowsAndPosition(string currentState, int round, int &returned_row, int &returned_position) {
+  // 3.1.1 Get current player
+  int target_player_symbol = (round == Alma ? 'A' : 'B');
   int index = 0;
-  for(int i = 0; i < currentState.length(); ++i){
-    if(currentState[i] == targetChar) {
+  // 3.1.2 Find current player in museum string
+  for (int i = 0; i < currentState.length(); ++i) {
+    if (currentState[i] == target_player_symbol) {
       index = i;
       break;
     }
   }
-//  cout << "index: " << index << "\n";
+  // 3.1.3 Translate museum index to row and col
   int row = 0;
-  while((row+1)*(row+1)-1 < index) row++;
-  int col = index - row*row;
-  return row*100+col;
+  while ((row + 1) * ( row + 1) -1 < index) row++;
+  int col = index - row * row;
+
+  // 3.1.4 Return
+  returned_row = row;
+  returned_position = col;
 }
 
+// 3.2.1 Check whether a move is an legal move
+bool isMoveLegal(string room, int row, int position, int length) {
+  bool row_out_of_boundary = row < 0 || row >= length;
+  if (row_out_of_boundary) return false;
 
-bool isRoomLegal(string room, int row, int position, int length){
-    if(row < 0 || row >= length) return false;
-    if(position < 0 || position >= row * 2 + 1) return false;
-    if(room[translateToStringIndex(row, position)] != 'f') return false;
-    return true;
+  bool position_out_of_boundary = position < 0 || position >= row * 2 + 1;
+  if (position_out_of_boundary) return false;
+
+  bool room_not_free = room[translateToStringIndex(row, position)] != 'f';
+  if (room_not_free) return false;
+
+  return true;
+}
+
+// 3.2 Get current player possible moves
+void getPossibleMoves (string room, int row, int position, vector<pair<int, int> > &possibleMoves, int length) {
+  if(position % 2 == 0){
+    // left right down
+    if (isMoveLegal(room, row, position-1, length)) possibleMoves.push_back(make_pair(row, position-1));
+    if (isMoveLegal(room, row, position+1, length)) possibleMoves.push_back(make_pair(row, position+1));
+    if (isMoveLegal(room, row+1, position+1, length)) possibleMoves.push_back(make_pair(row+1, position+1));
+  }else{
+    // up left right
+    if (isMoveLegal(room, row, position-1, length)) possibleMoves.push_back(make_pair(row, position-1));
+    if (isMoveLegal(room, row, position+1, length)) possibleMoves.push_back(make_pair(row, position+1));
+    if (isMoveLegal(room, row-1, position-1, length)) possibleMoves.push_back(make_pair(row-1, position-1));
   }
+}
 
-void getPossibleMoves(string room, int row, int position, vector<pair<int, int> > &possibleMoves, int length){
-    if(position % 2 == 0){
-      // left right down
-      if(isRoomLegal(room, row, position-1, length)) possibleMoves.push_back(make_pair(row, position-1));
-      if(isRoomLegal(room, row, position+1, length)) possibleMoves.push_back(make_pair(row, position+1));
-      if(isRoomLegal(room, row+1, position+1, length)) possibleMoves.push_back(make_pair(row+1, position+1));
-    }else{
-      // up left right
-      if(isRoomLegal(room, row, position-1, length)) possibleMoves.push_back(make_pair(row, position-1));
-      if(isRoomLegal(room, row, position+1, length)) possibleMoves.push_back(make_pair(row, position+1));
-      if(isRoomLegal(room, row-1, position-1, length)) possibleMoves.push_back(make_pair(row-1, position-1));
-    }
-  }
-
-int calculateScore(string s){
+int calculateMuseumScore(string s) {
   int score = 0;
-  for(int i = 0 ; i < s.length(); ++i){
-    if(s[i] == 'a' || s[i] == 'A') score++;
-    else if(s[i] == 'b' || s[i] == 'B') score--;
+  for (int i = 0 ; i < s.length(); ++i) {
+    if (s[i] == 'a' || s[i] == 'A') score++;
+    if (s[i] == 'b' || s[i] == 'B') score--;
   }
   return score;
 }
 
-int simulate(string currentMuseum, int playerRound, int length){
-//  cout << "current state: " << currentMuseum << "\n";
-  int pp = getCurrentPlayerRowsAndPosition(currentMuseum, playerRound);
-  int playerRow = pp/100;
-  int playerPosition = pp%100;
-//  cout << "playerRow      " << playerRow << "\n";
-//  cout << "playerPosition " << playerPosition<< "\n";
 
-  vector<pair<int, int> > possibleMoves;
-  getPossibleMoves(currentMuseum, playerRow, playerPosition, possibleMoves, length);
+// 3. Simulate game
+int simulate(string current_museum, int current_player, int length, bool is_last_player_stuck = false){
 
-//  cout << "possible moves:\n";
-//  for(int i = 0; i < possibleMoves.size(); ++i){
-//      cout << possibleMoves[i].first << " " << possibleMoves[i].second << "\n";
-//    }
+  // 3.1  Get current player row and position
+  int current_player_row;
+  int current_player_position;
+  getCurrentPlayerRowsAndPosition(current_museum, current_player, current_player_row, current_player_position);
 
-  if(possibleMoves.size() == 0){
-    playerRound = playerRound == 0 ? 1 : 0;
-    int pp = getCurrentPlayerRowsAndPosition(currentMuseum, playerRound);
-    int nextPlayerRow = pp/100;
-    int nextPlayerPosition = pp%100;
-    vector<pair<int, int> > nextPlayerPossibleMoves;
-    getPossibleMoves(currentMuseum, nextPlayerRow, nextPlayerPosition, nextPlayerPossibleMoves, length);
+  // 3.2 Get current player possible moves
+  vector<pair<int, int> > possible_moves;
+  getPossibleMoves(current_museum, current_player_row, current_player_position, possible_moves, length);
 
-//      cout << "next player possible moves:\n";
-//      for(int i = 0; i < nextPlayerPossibleMoves.size(); ++i){
-//        cout << nextPlayerPossibleMoves[i].first << " " << nextPlayerPossibleMoves[i].second << "\n";
-//      }
-    if(nextPlayerPossibleMoves.size() == 0){
-//         cout << "no way here, calculating possible score: " << calculateScore() << "\n";
-       return calculateScore(currentMuseum);
+  if (possible_moves.size() > 0) {
+  // 3.3.1 If player can move, simulate all move and select the best score
+    int best_score = (current_player == Alma ? -999 : 999);
+    for (int i = 0; i < possible_moves.size(); ++i) {
+      string new_museum = current_museum;
+      new_museum[translateToStringIndex(possible_moves[i].first, possible_moves[i].second)] = current_player == Alma ? 'A' : 'B';
+      new_museum[translateToStringIndex(current_player_row, current_player_position)] = current_player == Alma ? 'a' : 'b';
+      int next_player = current_player == Alma ? Bertha : Alma;
+      int simulated_score = simulate(new_museum, next_player, length);
+      best_score = (current_player == 0 ? max(best_score, simulated_score) : min(best_score, simulated_score));
     }
-    int bestScore = (playerRound == 0 ? -999 : 999);
-    for(int i = 0; i < nextPlayerPossibleMoves.size(); ++i){
-      string newMuseum = currentMuseum;
-//        cin >> b; //debug
-      newMuseum[translateToStringIndex(nextPlayerPossibleMoves[i].first, nextPlayerPossibleMoves[i].second)] = playerRound == 0 ? 'A' : 'B';
-      newMuseum[translateToStringIndex(nextPlayerRow, nextPlayerPosition)] = playerRound == 0 ? 'a' : 'b';
-      int nextRound = (playerRound == 0 ? 1 : 0);
-      int simulatedScore = simulate(newMuseum, nextRound, length);
-      bestScore = (playerRound == 0 ? max(bestScore, simulatedScore) : min(bestScore, simulatedScore));
+    return best_score;
+  } else {
+  // 3.3.2 If player cannot move, check whether last player also stuck, else simulate next player
+    if (is_last_player_stuck) {
+      return calculateMuseumScore(current_museum);
+    } else {
+      int next_player = current_player == Alma ? Bertha : Alma;
+      return simulate(current_museum, next_player, length, true);
     }
-    return bestScore;
-  }else{
-    int bestScore = (playerRound == 0 ? -999 : 999);
-    for(int i = 0; i < possibleMoves.size(); ++i){
-      string newMuseum = currentMuseum;
-//        int b; //debug
-//        cin >> b; //debug
-      newMuseum[translateToStringIndex(possibleMoves[i].first, possibleMoves[i].second)] = playerRound == 0 ? 'A' : 'B';
-      newMuseum[translateToStringIndex(playerRow, playerPosition)] = playerRound == 0 ? 'a' : 'b';
-      int nextRound = (playerRound == 0 ? 1 : 0);
-      int simulatedScore = simulate(newMuseum, nextRound, length);
-      bestScore = (playerRound == 0 ? max(bestScore, simulatedScore) : min(bestScore, simulatedScore));
-    }
-    return bestScore;
   }
 }
 
 
 
+void solve() {
 
-
-void solve(){
-
-  // input
-  int S, ARow, APosition, BRow, BPosition, numOfConstruction;
-  cin >> S >> ARow >> APosition >> BRow >> BPosition >> numOfConstruction;
-  ARow--; APosition--; BRow--; BPosition--;
-  vector<pair<int, int> > construction;
-  construction.resize(0);
-  for(int i = 0; i < numOfConstruction; ++i){
+  // 1. Get input
+  int museum_size, a_row, a_position, b_row, b_position, num_construction;
+  cin >> museum_size >> a_row >> a_position >> b_row >> b_position >> num_construction;
+  a_row--; a_position--; b_row--; b_position--;
+  vector<int> construction_row(num_construction);
+  vector<int> construction_position(num_construction);
+  for(int i = 0; i < num_construction; ++i){
     int row, col;
     cin >> row >> col;
-    construction.push_back(make_pair(row-1, col-1));
+    construction_row[i] = row - 1;
+    construction_position[i] = col - 1;
   }
 
-
-  // 1. initialize museum
-  //  Museum museum(S, ARow, APosition, BRow, BPosition, construction);
-
-  string museum = "";
-  for(int i = 0 ; i < S * S; ++i){
-    museum = museum + 'f';
+  // 2. Initialize museum
+  //    'A' represents current position of Alma
+  //    'a' represents room painted by Alma
+  //    'B' represents current position of Berthe
+  //    'b' represents room painted by Berthe
+  //    'c' represents construction room
+  //    'f' represents free room
+  string museum_status = "";
+  for(int i = 0 ; i < museum_size * museum_size; ++i){
+    museum_status = museum_status + 'f';
   }
-  museum[translateToStringIndex(ARow, APosition)] = 'A';
-  museum[translateToStringIndex(BRow, BPosition)] = 'B';
-  for(int i = 0; i < numOfConstruction; ++i){
-    museum[translateToStringIndex(construction[i].first, construction[i].second)] = 'c';
+  museum_status[translateToStringIndex(a_row, a_position)] = 'A';
+  museum_status[translateToStringIndex(b_row, b_position)] = 'B';
+  for (int i = 0; i < num_construction; ++i) {
+    museum_status[translateToStringIndex(construction_row[i], construction_position[i])] = 'c';
   }
-  //  cout << museum;
-  int playerRound = 0;
 
-  // 2. initialize broad status
-  int result = simulate(museum, playerRound, S);
+  // 3. Run game simulation
+  int player_round = Alma;
+  int result = simulate(museum_status, player_round, museum_size);
+  cout  << result << "\n";
 
-//  int bestScore = 0;
-  // 3. explore all possible solutions in museum
-  //    a. while there is still room to move, simulate next steps, record status
-  //    b. check if no steps can be made, if no steps can be made, record the bestScore
-  //    c. recursively call explore all possible solutions in museum
-//  int result = museum.simulate();
-//  cout << "answer: ";
-  cout  << result;
-  // 4. print the best Score
-
-  cout << "\n";
 }
 
-int main(){
+int main() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(0);
+
   int t;
   cin >> t;
-  for(int i = 0; i < t; ++i){
-    cout << "Case #" << i+1 << ": ";
+
+  for (int i = 0; i < t; ++i) {
+    cout << "Case #" << i+1 << ": " ;
     solve();
   }
 }
