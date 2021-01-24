@@ -1,353 +1,172 @@
-#include<iostream>
-#include<vector>
-#include<string>
-#include<algorithm>
-#include<sstream>
-#include<queue>
-#include<iostream>
-#include<map>
-#include<iomanip>
+#include <bits/stdc++.h>
 using namespace std;
 
 long long LIMIT = 1e12;
+vector<pair<int, int> > streets;
+vector<vector<int> > stones_at_junction;
+vector<vector<int> > recipe_ingredients;
+vector<int> recipe_product;
+
+vector<vector<int> > connected_junctions;
+vector<vector<int> > recipes_needing_stone;
+vector<vector<long long> > cost_junction_to_stone;
+priority_queue <pair<long long, pair<int, int>>, vector<pair<long long, pair<int, int>> >, greater<pair<long long, pair<int, int> > > >
+  cost_junction_stone_pair_priority_queue;
+
+// 6.2  Try recipe on the current junction, try all recipes involving current_stone
+void tryApplyRecipesWithStone(int current_stone, int current_junction) {
+  for (int current_recipe = 0; current_recipe < recipes_needing_stone[current_stone].size(); ++current_recipe) {
+    // 6.2.1  Try building product stone by using recipe at current_junction.
+    long long cost_to_new_product = 0;
+    int recipe_index = recipes_needing_stone[current_stone][current_recipe];
+    for (int k = 0; k < recipe_ingredients[recipe_index].size(); ++k) {
+      int ingredient = recipe_ingredients[recipe_index][k] - 1;
+      cost_to_new_product += cost_junction_to_stone[current_junction][ingredient];
+    }
+    int product = recipe_product[recipe_index] - 1;
+    // 6.2.2  If the product can be made easier, update cost and add target combination to priority queue
+    if (cost_to_new_product < cost_junction_to_stone[current_junction][product]) {
+      cost_junction_to_stone[current_junction][product] = cost_to_new_product;
+      cost_junction_stone_pair_priority_queue.push(make_pair(cost_to_new_product, make_pair(current_junction, product)));
+    }
+  }
+}
+
+// 6.3  Try relax adjacent junction with the connected path
+void tryDijkstraRelax(int current_junction, int current_stone, int destination_junction){
+  long long new_cost = cost_junction_to_stone[current_junction][current_stone] + 1;
+  if(cost_junction_to_stone[destination_junction][current_stone] > new_cost){
+    cost_junction_to_stone[destination_junction][current_stone] = new_cost;
+    cost_junction_stone_pair_priority_queue.push(make_pair(new_cost, make_pair(destination_junction, current_stone)));
+  }
+}
 
 void solve(){
-  int numberOfJunction, numberOfStreet, numberOfStone, numberOfRecipe;
-  cin >> numberOfJunction >> numberOfStreet >> numberOfStone >> numberOfRecipe;
 
-  vector<pair<int, int> > streets(numberOfStreet);
-  for(int i = 0; i < numberOfStreet; ++i){
+  // 1. Get input
+  int num_junction, num_street, num_stone, num_recipe;
+  cin >> num_junction >> num_street >> num_stone >> num_recipe;
+
+  streets.resize(num_street);
+  for(int i = 0; i < num_street; ++i) {
     int j1, j2;
     cin >> j1 >> j2;
     streets[i] = make_pair(j1, j2);
   }
 
-  vector<vector<int> > stonesAtJunction(numberOfJunction);
-  for(int i = 0; i < numberOfJunction; ++i){
+  stones_at_junction.resize(num_junction);
+  for (int i = 0; i < num_junction; ++i) {
     int lin;
     cin >> lin;
-    stonesAtJunction[i].resize(lin);
+    stones_at_junction[i].resize(lin);
     for(int j = 0; j < lin; ++j){
       int sin;
       cin >> sin;
-      stonesAtJunction[i][j] = sin;
+      stones_at_junction[i][j] = sin;
     }
   }
 
-  vector<vector<int> > recipesIngredient(numberOfRecipe);
-  vector<int> recipesProduct(numberOfRecipe);
-  for(int i = 0; i < numberOfRecipe; ++i){
+  recipe_ingredients.resize(num_recipe);
+  recipe_product.resize(num_recipe);
+  for (int i = 0; i < num_recipe; ++i) {
     int lin;
     cin >> lin;
-    recipesIngredient[i].resize(lin);
-    for(int j = 0; j < lin; ++j){
+    recipe_ingredients[i].resize(lin);
+    for (int j = 0; j < lin; ++j) {
       int iin;
       cin >> iin;
-      recipesIngredient[i][j] = iin;
+      recipe_ingredients[i][j] = iin;
     }
     int pin;
     cin >> pin;
-    recipesProduct[i] = pin;
+    recipe_product[i] = pin;
   }
 
-
-  // 1. Create vertices with junction, stone
-
-  // 2. Create cost 2d vector
-  vector<vector<long long> > costJunctionToStone(numberOfJunction, vector<long long>(numberOfStone, LIMIT));
-
-  // 3. Create vector of junctions connected to junction
-  vector<vector<int> > connectedJunctions(numberOfJunction, vector<int>(0));
-  for(int i = 0; i < numberOfStreet; ++i){
-    int junctionA = streets[i].first - 1;
-    int junctionB = streets[i].second - 1;
-    connectedJunctions[junctionA].push_back(junctionB);
-    connectedJunctions[junctionB].push_back(junctionA);
+  // 2. List the junctions connected to every junction
+  //    Ex. connected_junctions[2] = {3, 4, 5} means junction 3 is connected to junction 4, 5, 6
+  connected_junctions.resize(0);
+  connected_junctions.resize(num_junction, vector<int>(0));
+  for (int i = 0; i < num_street; ++i) {
+    int junction_a = streets[i].first - 1;
+    int junction_b = streets[i].second - 1;
+    connected_junctions[junction_a].push_back(junction_b);
+    connected_junctions[junction_b].push_back(junction_a);
   }
 
-  // 4. initialize costs
-  for(int i = 0; i < numberOfJunction; ++i){
-    for(int j = 0; j < stonesAtJunction[i].size(); ++j){
-      int stoneIndex = stonesAtJunction[i][j] - 1;
-      costJunctionToStone[i][stoneIndex] = 0;
+  // 3. List the recipes every stones are needed by
+  //    Ex. recipes_needing_stone[3] = {6, 7} means stone 4 is used in recipe 7 and recipe 8
+  recipes_needing_stone.resize(0);
+  recipes_needing_stone.resize(num_stone, vector<int>(0));
+  for(int i = 0; i < num_recipe; ++i){
+    for(int j = 0; j < recipe_ingredients[i].size(); ++j){
+      int ingredientIndex = recipe_ingredients[i][j] - 1;
+      recipes_needing_stone[ingredientIndex].push_back(i);
     }
   }
 
-  // 5. Create priority queue
-  priority_queue <pair<long long, pair<int, int>>, vector<pair<long long, pair<int, int>> >, greater<pair<long long, pair<int, int> > > > costPairPriorityQueue;
-
-  // 6. prepare a map from a stone to list of ingredients
-  vector<vector<int> > recipesNeedingStone(numberOfStone, vector<int>(0));
-  for(int i = 0; i < numberOfRecipe; ++i){
-    for(int j = 0; j < recipesIngredient[i].size(); ++j){
-      int ingredientIndex = recipesIngredient[i][j] - 1;
-      recipesNeedingStone[ingredientIndex].push_back(i);
+  // 4. Initialize costs table from junction to stone.
+  //      set cost of stone at junction to zero if the junction has the stone
+  //    Ex. cost_junction_to_stone[3][6] = 9 means moving stone 7 to junction 4 takes 9 moves.
+  cost_junction_to_stone.resize(0);
+  cost_junction_to_stone.resize(num_junction, vector<long long>(num_stone, LIMIT));
+  for (int i = 0; i < num_junction; ++i) {
+    for(int j = 0; j < stones_at_junction[i].size(); ++j){
+      int stoneIndex = stones_at_junction[i][j] - 1;
+      cost_junction_to_stone[i][stoneIndex] = 0;
     }
   }
 
-  // 7. initialize a map for ingredients available at a junction
-//  vector<vector<bool> > ingredientsCollected(numberOfJunction, vector<bool>(numberOfStone, false));
-
-  // 8. initialize the costPairPriority
-  for(int i = 0; i < numberOfJunction; ++i){
-    for(int j = 0; j < stonesAtJunction[i].size(); ++j){
-      int stoneIndex = stonesAtJunction[i][j] - 1;
-//      ingredientsCollected[i][stoneIndex] = true;
-      costPairPriorityQueue.push(make_pair(0, make_pair(i, stoneIndex)));
+  // 5. Create priority queue for Dijkstra update, enqueue the 0 cost junction-stone pair.
+  //    cost_junction_stone_pair_priority_queue sorts the junction
+  //      stone pair waiting to be explored by their cost, smallest are in the front
+  while (!cost_junction_stone_pair_priority_queue.empty()) cost_junction_stone_pair_priority_queue.pop();
+  for (int i = 0; i < num_junction; ++i) {
+    for (int j = 0; j < stones_at_junction[i].size(); ++j) {
+      int stone_index = stones_at_junction[i][j] - 1;
+      cost_junction_stone_pair_priority_queue.push(make_pair(0, make_pair(i, stone_index)));
     }
   }
 
 
+  // 6. Run Dijkstra algorithm
+  while (!cost_junction_stone_pair_priority_queue.empty()) {
 
-  // ! maybe run the ingredients first
-//  for(int currentRecipe = 0; currentRecipe < numberOfRecipe; ++currentRecipe){
-//
-//    for(int currentJunction = 0; currentJunction < numberOfJunction; ++currentJunction){
-//
-//      long long recipeCost = 0;
-//      for(int k = 0; k < recipesIngredient[currentRecipe].size(); ++ k){
-//        int currentIngredient = recipesIngredient[currentRecipe][k] - 1;
-//        recipeCost += costJunctionToStone[currentJunction][currentIngredient];
-//      }
-//      int product = recipesProduct[currentRecipe] - 1;
-//      if(recipeCost < costJunctionToStone[currentJunction][product]){
-//        costJunctionToStone[currentJunction][product] = recipeCost;
-//        costPairPriorityQueue.push(make_pair(recipeCost, make_pair(currentJunction, product)));
-//      }
-//
-//
-//    }
-//  }
+    // 6.1  Get the pair with least cost
+    pair<long long, pair<int, int> > current_cost_junction_stone_pair = cost_junction_stone_pair_priority_queue.top();
+    cost_junction_stone_pair_priority_queue.pop();
+    long long current_cost = current_cost_junction_stone_pair.first;
+    int current_junction = current_cost_junction_stone_pair.second.first;
+    int current_stone = current_cost_junction_stone_pair.second.second;
 
-  // 5. dijkstra
-  //    5.1 enqueue the 0 cost nodes
-  //    5.2 while queue has nodes
-  //        5.3 for each edge
-  //            5.4 try to reduce cost by taking the stone to the new path, enqueue
-  //            5.5 check the recipes using the new ingredients, if the new ingredients is used, create a new stone, enqueue
-  while(!costPairPriorityQueue.empty()){
-    pair<long long, pair<int, int> > currentPair = costPairPriorityQueue.top();
-    costPairPriorityQueue.pop();
-    long long currentCost = currentPair.first;
-    int currentJunction = currentPair.second.first;
-    int currentStone = currentPair.second.second;
-//    cout << "! " << currentJunction + 1 << " " << currentStone + 1 << endl;
+    // 6.2  Try recipe on the current junction
+    tryApplyRecipesWithStone(current_stone, current_junction);
 
-    // self jump
-    {
-      for(int currentRecipe = 0; currentRecipe  < recipesNeedingStone[currentStone].size(); ++currentRecipe ){
-//        cout << "s? " << currentRecipe + 1 << endl;
-        long long costToNewProduct = 0;
-        for(int k = 0; k < recipesIngredient[currentRecipe].size(); ++k){
-          int ingredient = recipesIngredient[currentRecipe][k] - 1;
-          costToNewProduct += costJunctionToStone[currentJunction][ingredient];
-        }
-//        cout << "s= " << costToNewProduct << endl;
-        int product = recipesProduct[currentRecipe] - 1;
-        if(costToNewProduct < costJunctionToStone[currentJunction][product]){
-          costJunctionToStone[currentJunction][product] = costToNewProduct;
-//          cout << "$$$" << endl;
-          costPairPriorityQueue.push(make_pair(costToNewProduct, make_pair(currentJunction, product)));
-        }
-      }
-    }
-
-    for(int i = 0; i < connectedJunctions[currentJunction].size(); ++i){
-      int destinationJunction = connectedJunctions[currentJunction][i];
-//      cout << "@ " << destinationJunction + 1 << endl;
-      long long newCost = costJunctionToStone[currentJunction][currentStone] + 1;
-      if(costJunctionToStone[destinationJunction][currentStone] > newCost){
-        costJunctionToStone[destinationJunction][currentStone] = newCost;
-//        cout << "$$$" << endl;
-        costPairPriorityQueue.push(make_pair(newCost, make_pair(destinationJunction, currentStone)));
-      }
-
-      for(int currentRecipe = 0; currentRecipe  < recipesNeedingStone[currentStone].size(); ++currentRecipe ){
-//        cout << "? " << currentRecipe + 1 << endl;
-        long long costToNewProduct = 0;
-        int recipeIndex = recipesNeedingStone[currentStone][currentRecipe];
-        for(int k = 0; k < recipesIngredient[recipeIndex].size(); ++k){
-          int ingredient = recipesIngredient[recipeIndex][k] - 1;
-          costToNewProduct += costJunctionToStone[destinationJunction][ingredient];
-        }
-//        cout << "= " << costToNewProduct << endl;
-        int product = recipesProduct[recipeIndex] - 1;
-        if(costToNewProduct < costJunctionToStone[destinationJunction][product]){
-          costJunctionToStone[destinationJunction][product] = costToNewProduct;
-//          cout << "$$$" << endl;
-          costPairPriorityQueue.push(make_pair(costToNewProduct, make_pair(destinationJunction, product)));
-        }
-      }
+    // 6.3  Try relax cost on the adjacent paths
+    for (int i = 0; i < connected_junctions[current_junction].size(); ++i) {
+      int destination_junction = connected_junctions[current_junction][i];
+      tryDijkstraRelax(current_junction, current_stone, destination_junction);
     }
   }
 
-//
-//  for(int i = 0; i < numberOfJunction; ++i){
-//    for(int j = 0; j < numberOfStone; ++j){
-//      cout << costJunctionToStone[i][j] << " " ;
-//    }
-//    cout << endl;
-//  }
-//    cout << endl;
-
-
+  // 7. Iterate through all junction's cost to create stone 1 for minimum cost cost across the map.
   long long ans = LIMIT;
-  for(int i = 0; i < numberOfJunction; ++i){
-    ans = min(ans, costJunctionToStone[i][0]);
+  for (int i = 0; i < num_junction; ++i) {
+    ans = min(ans, cost_junction_to_stone[i][0]);
   }
   cout << (ans == LIMIT ? -1 : ans) << "\n";
 
-  {
-//  // 1. create lookup from junction to junction
-//  vector<vector<long long> > costToJunction(numberOfJunction);
-//  for(int i = 0; i < costToJunction.size(); ++i){
-//    costToJunction[i].resize(numberOfJunction, LIMIT);
-//  }
-//
-//  // 2. create imaginary lookup from junction to stone
-//  vector<vector<long long> > costToStone(numberOfJunction);
-//  for(int i = 0; i < costToStone.size(); ++i){
-//    costToStone[i].resize(numberOfStone, LIMIT);
-//  }
-//
-//  // 3. initialize self to 0 and the connected junctions to 1
-//  for(int i = 0; i < numberOfJunction; ++i) costToJunction[i][i] = 0;
-//  for(int i = 0; i < numberOfStreet; ++i){
-//    int u = streets[i].first - 1;
-//    int v = streets[i].second - 1;
-//    costToJunction[u][v] = 1;
-//    costToJunction[v][u] = 1;
-//  }
-//
-//  // 4. initialize the junction with stone to 0
-//  for(int i = 0; i < stonesAtJunction.size(); ++i){
-//    for(int j = 0; j < stonesAtJunction[i].size(); ++j){
-//      int stone = stonesAtJunction[i][j] - 1;
-//      costToStone[i][stone] = 0;
-//    }
-//  }
-//
-//  // 5. run recipes
-//  for(int junction = 0; junction < costToStone.size(); ++junction){
-//    for(int recipe = 0; recipe < recipesProduct.size(); ++recipe){
-//      long long sumOfIngredientCost = 0;
-//      for(int r = 0; r < recipesIngredient[recipe].size(); ++r){
-//        int item = recipesIngredient[recipe][r] - 1;
-//        sumOfIngredientCost += costToStone[junction][item];
-//      }
-//
-//      if(sumOfIngredientCost < LIMIT){
-//        int product = recipesProduct[recipe] - 1;
-//        costToStone[junction][product] = sumOfIngredientCost;
-//      }
-//
-//    }
-//  }
-//
-//  // 6. for every junction
-//  //   7. for every stone
-//  //     8. for every starting junction
-//  //       9. for every street, check update for two junctions and stone
-//  //       10.for every recipe, check update
-//  bool hasUpdate = true;
-//  for(int z = 0; z < numberOfJunction ; ++z){
-//    if(!hasUpdate) break;
-//    hasUpdate = false;
-//    for(int currentJunction = 0; currentJunction < numberOfJunction; ++currentJunction){
-//      for(int currentStreet = 0; currentStreet < numberOfStreet; ++currentStreet){
-//        int junctionA = streets[currentSt reet].first - 1;
-//        int junctionB = streets[currentStreet].second - 1;
-//
-//
-//        if(costToJunction[currentJunction][junctionA] + 1 < costToJunction[currentJunction][junctionB]){
-//          costToJunction[currentJunction][junctionB] = costToJunction[currentJunction][junctionA] + 1;
-//          hasUpdate = true;
-//        }
-//        if(costToJunction[currentJunction][junctionB] + 1 < costToJunction[currentJunction][junctionA]){
-//          costToJunction[currentJunction][junctionA] = costToJunction[currentJunction][junctionB] + 1;
-//          hasUpdate = true;
-//        }
-//
-//        for(int currentStone = 0; currentStone < numberOfStone; ++currentStone){
-//          if(costToJunction[currentJunction][junctionA] + costToStone[junctionA][currentStone] < costToStone[currentJunction][currentStone]){
-//            costToStone[currentJunction][currentStone] = costToJunction[currentJunction][junctionA] + costToStone[junctionA][currentStone];
-//            hasUpdate = true;
-//          }
-//          if(costToJunction[currentJunction][junctionB] + costToStone[junctionB][currentStone] < costToStone[currentJunction][currentStone]){
-//            costToStone[currentJunction][currentStone] = costToJunction[currentJunction][junctionB] + costToStone[junctionB][currentStone];
-//            hasUpdate = true;
-//          }
-//        }
-//
-//        for(int currentRecipe = 0; currentRecipe < numberOfRecipe; ++currentRecipe){
-//          long long sumOfIngredientCostA = 0;
-//          long long sumOfIngredientCostB = 0;
-//          for(int r = 0; r < recipesIngredient[currentRecipe].size(); ++r){
-//            int item = recipesIngredient[currentRecipe][r] - 1;
-//            sumOfIngredientCostA += costToStone[junctionA][item];
-//            sumOfIngredientCostB += costToStone[junctionB][item];
-//          }
-//          // collect at A
-//          int product = recipesProduct[currentRecipe] - 1;
-//          if(sumOfIngredientCostA < costToStone[junctionA][product]){
-//            costToStone[junctionA][product] = sumOfIngredientCostA;
-//            hasUpdate = true;
-//          }
-//          // collect at B
-//          if(sumOfIngredientCostB < costToStone[junctionB][product]){
-//            costToStone[junctionB][product] = sumOfIngredientCostB;
-//            hasUpdate = true;
-//          }
-//          // self at A
-//          if(sumOfIngredientCostA + costToJunction[currentJunction][junctionA] < costToStone[currentJunction][product] ){
-//            costToStone[currentJunction][product] = sumOfIngredientCostA + costToJunction[currentJunction][junctionA] ;
-//            hasUpdate = true;
-//          }
-//          // self at B
-//          if(sumOfIngredientCostB + costToJunction[currentJunction][junctionB] < costToStone[currentJunction][product] ){
-//            costToStone[currentJunction][product] = sumOfIngredientCostB + costToJunction[currentJunction][junctionB] ;
-//            hasUpdate = true;
-//          }
-//        }
-//      }
-//
-//    }
-//
-//  }
-//
-//  long long ans = LIMIT;
-//  for(int i = 0 ; i < numberOfJunction; ++i){
-//    ans = min(ans, costToStone[i][0]);
-//  }
-//  cout << ans << endl;
-  }
-
 }
 
-  // check status
 
-//    cout << "\n";
-//  for(int i = 0; i < numberOfJunction; ++i){
-//    for(int j = 0; j < numberOfJunction; ++j){
-//      cout << costToJunction[i][j] << " " ;
-//    }
-//    cout << "\n";
-//  }
-//
-//    cout << "\n";
-//  for(int i = 0; i < numberOfJunction; ++i){
-//    for(int j = 0; j < numberOfStone; ++j){
-//      cout << costToStone[i][j] << " " ;
-//    }
-//    cout << "\n";
-//  }
+int main() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(0);
 
-
-int main(){
   int t;
   cin >> t;
-  for(int i = 0; i < t; ++i){
-    cout << "Case #" << i+1 << ": ";
+
+  for (int i = 0; i < t; ++i) {
+    cout << "Case #" << i+1 << ": " ;
     solve();
   }
 }
