@@ -1,53 +1,62 @@
-#include<iostream>
-#include<vector>
-#include<string>
-#include<algorithm>
-#include<sstream>
-#include<queue>
-#include<iostream>
+#include <bits/stdc++.h>
 using namespace std;
 
-void solve(){
+void solve() {
 
-  int numberOfIntervals, maximumHarvest;
-  cin >> numberOfIntervals >> maximumHarvest;
-  vector<pair<int, int> > que;
-  que.resize(numberOfIntervals);
-  for(int i = 0; i < numberOfIntervals; ++i){
-    int startTime, endTime;
-    cin >> startTime >> endTime;
-    int cost = endTime - startTime;
-    que[i] = make_pair(startTime, cost);
+  // 1. Get input
+  int num_interval, max_harvest;
+  cin >> num_interval >> max_harvest;
+  vector<int> start_time(num_interval);
+  vector<int> end_time(num_interval);
+  for (int i = 0; i < num_interval; ++i) {
+    int start_in, end_in;
+    cin >> start_in >> end_in;
+    start_time[i] = start_in;
+    end_time[i] = end_in;
   }
-  sort(que.begin(), que.end());
+
+  // 2. Create session queue vector, pair stores (start_time, session_length)
+  //    Then sort by start time
+  vector<pair<int, int> > harvest_time_queue(num_interval);
+  for (int i = 0; i < num_interval; ++i) {
+    int start = start_time[i];
+    int length = end_time[i] - start_time[i];
+    harvest_time_queue[i] = make_pair(start, length);
+  }
+  sort(harvest_time_queue.begin(), harvest_time_queue.end());
+
+  // 3. Iterate through session from first to last, start a new harvest if a session cannot be covered.
   int answer = 0;
-  int lastEnd = que[0].first;
-  for(int i = 0; i < numberOfIntervals; ++i){
-    if(lastEnd >= que[i].first + que[i].second){
+  int last_harvest_end = 0;
+  for (int i = 0; i < num_interval; ++i) {
+    int current_session_start_time = harvest_time_queue[i].first;
+    int current_session_finish_time = harvest_time_queue[i].first + harvest_time_queue[i].second;
+    // 3.1 If the new session can be covered by last harvest, do nothing
+    if (last_harvest_end >= current_session_finish_time) {
       continue;
-    }
-    int newStart = max(lastEnd, que[i].first);
-
-    int newCost = 0;
-    if (lastEnd > que[i].first){
-      newCost = que[i].second - (lastEnd - que[i].first);
     } else {
-      newCost = que[i].second;
-    }
+    // 3.2 If the session cannot be covered, cover it up with new harvests
+      int new_harvest_start_time = max(last_harvest_end, current_session_start_time);
+      int new_session_remaining_time = current_session_finish_time - new_harvest_start_time;
 
-    int thisRoundDeploy = ((newCost - 1) / maximumHarvest) + 1;
-    answer += thisRoundDeploy;
-    lastEnd = newStart + (thisRoundDeploy * maximumHarvest);
+      int num_deploy_this_session = ((new_session_remaining_time - 1) / max_harvest) + 1;
+      answer += num_deploy_this_session;
+      last_harvest_end = new_harvest_start_time + (num_deploy_this_session * max_harvest);
+    }
   }
 
   cout << answer << "\n";
 }
 
-int main(){
+int main() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(0);
+
   int t;
   cin >> t;
-  for(int i = 0; i < t; ++i){
-    cout << "Case #" << i+1 << ": ";
+
+  for (int i = 0; i < t; ++i) {
+    cout << "Case #" << i+1 << ": " ;
     solve();
   }
 }
