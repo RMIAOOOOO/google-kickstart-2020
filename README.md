@@ -29,3 +29,7 @@ The code tries take reference from the top winner of Google Kickstart for cleane
 | E     | 2        | 21%                       |                     |
 | E     | 3        | 3%                        | Priority Queue      |
 | E     | 4        | 1%                        | Dijkstra, Priority Queue|
+| F     | 1        | 57%                       | Sorting             |
+| F     | 2        | 39%                       | Greedy              |
+| F     | 3        | 6%                        | Implementation      |
+| F     | 4        | 1%                        | Expected Value, Greedy, Memoization |
