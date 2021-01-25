@@ -33,3 +33,7 @@ The code tries take reference from the top winner of Google Kickstart for cleane
 | F     | 2        | 39%                       | Greedy              |
 | F     | 3        | 6%                        | Implementation      |
 | F     | 4        | 1%                        | Expected Value, Greedy, Memoization |
+| G     | 1        | 71%                       |                     |
+| G     | 2        | 69%                       |                     |
+| G     | 3        | 7%                        | Prefix sum, binary search |
+| G     | 4        | 3%                        | Expected Value, Dynamic Programming |
