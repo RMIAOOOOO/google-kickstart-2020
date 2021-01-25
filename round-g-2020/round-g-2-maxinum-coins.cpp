@@ -2,54 +2,81 @@
 using namespace std;
 
 void solve() {
+  // get input
+  long long wheel, N;
+  cin >> wheel >> N;
+  vector<int> preConfig;
+  preConfig.resize(wheel);
+  long long ln = N;
+  long long lw = wheel;
+  long long bestCost = ln * lw;
+  for(int i = 0 ; i < wheel; ++i){
+    int input;
+    cin >> input;
+    preConfig[i] = input;
+  }
 
-  // 1. Get input
-  int square_width;
-  cin >> square_width;
-  vector<vector<int> > matrix(square_width, vector<int>(square_width, 0));
-  for(int i = 0 ; i < square_width; ++i){
-    for(int j = 0 ; j < square_width; ++j){
-      int input;
-      cin >> input;
-      matrix[i][j] = input;
+  // prepare data: sort currentConfig, prepare configSum
+  sort(preConfig.begin(), preConfig.end());
+
+  currentConfig.resize(wheel);
+  for(int i = 0; i < wheel; ++i){
+    currentConfig[i] = preConfig[i];
+  }
+  configSum.resize(wheel, 0);
+  configSum[0] = currentConfig[0];
+  for(int i = 1; i < wheel; ++i){
+    configSum[i] = currentConfig[i] + configSum[i-1];
+  }
+
+  long long separatingIndexA = 0;
+  long long separatingIndexB = 0;
+
+
+  for(int i = 0 ; i < wheel; ++i){
+
+    if(currentConfig[i] < (N + 1) / 2){
+
+      long long frontCost = currentConfig[i] * (i+1) - getSumFromTo(0, i);
+
+      long long targetValue = currentConfig[i] + N / 2;
+      long long separatingIndex = getIndexAtMost(targetValue, separatingIndexA, wheel-1);
+
+      long long backCostOriginal = getSumFromTo(i, separatingIndex) - currentConfig[i] * (separatingIndex - i + 1);
+      long long backCostReverse = (separatingIndex == wheel - 1 ? 0 : (N + currentConfig[i]) * (wheel - 1 - separatingIndex) - getSumFromTo(separatingIndex+1, wheel-1));
+
+      long long newCost = frontCost + backCostOriginal + backCostReverse;
+      bestCost = min(bestCost, newCost);
+      separatingIndexA = separatingIndex;
+    }else{
+
+      long long backCost = getSumFromTo(i, wheel-1) - currentConfig[i] * (wheel - i);
+
+      long long targetValue = (currentConfig[i] + N / 2) % N;
+
+      bool hasReversedValue = currentConfig[0] <= targetValue;
+      if(hasReversedValue){
+        long long separatingIndex = getIndexAtMost(targetValue, separatingIndexB, wheel-1);
+        long long frontCostOriginal  = getSumFromTo(0, separatingIndex);
+        frontCostOriginal += N * (separatingIndex + 1);
+        frontCostOriginal -= currentConfig[i] * (separatingIndex + 1);
+        long long frontCostReverse = currentConfig[i] * (i - separatingIndex ) - getSumFromTo(separatingIndex+1, i);
+
+        long long newCost = backCost + frontCostOriginal + frontCostReverse;
+        bestCost = min(bestCost, newCost);
+        separatingIndexB = separatingIndex;
+      }else{
+        long long frontCostOriginal = 0;
+        long long frontCostReverse = currentConfig[i] * (i+1) - getSumFromTo(0, i);
+
+        long long newCost = backCost + frontCostOriginal + frontCostReverse;
+        bestCost = min(bestCost, newCost);
+      }
+
     }
   }
 
-  long int ans = 0;
-  // 2. Iterate through bottom left diagonals
-  for (int i = 0 ; i < square_width - 1 ; ++i) {
-    int num_element_in_diagonal = i + 1;
-    long int sum_bottom_left_diagonal = 0;
-    for(int j = 0 ; j < num_element_in_diagonal; ++j){
-      int row = square_width - i + j -1;
-      int col = j;
-      sum_bottom_left_diagonal += matrix[row][col];
-    }
-    ans = max(sum_bottom_left_diagonal, ans);
-  }
-
-  // 3. Try middle diagonals
-  long int sum_logest_diagonal = 0;
-  for (int j = 0 ; j < square_width; ++j) {
-    int row = j;
-    int col = j;
-    sum_logest_diagonal += matrix[row][col];
-  }
-  ans = max(sum_logest_diagonal, ans);
-
-  // 4. Iterate through upper right diagonals
-  for (int i = 0 ; i < square_width - 1 ; ++i) {
-    int num_element_in_diagonal = i+1;
-    long int sum_upper_right_diagonal = 0;
-    for(int j = 0 ; j < num_element_in_diagonal; ++j){
-      int row = j;
-      int col = square_width + j - i -1;
-      sum_upper_right_diagonal += matrix[row][col];
-    }
-    ans = max(sum_upper_right_diagonal, ans);
-  }
-
-  cout << ans << "\n";
+  cout << bestCost << "\n";
 }
 
 int main() {
