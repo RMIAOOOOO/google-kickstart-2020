@@ -1,121 +1,138 @@
-#include<iostream>
-#include<vector>
-#include<string>
-#include<algorithm>
-#include<sstream>
-#include<queue>
-#include<iostream>
-#include<map>
-#include<iomanip>
+#include <bits/stdc++.h>
 using namespace std;
 
-double calculateBestAverage(vector<int> &currentGroup, int groupLength, int numberOfFace, map<vector<int>, double> &expectedValueHash, vector<int> &targetGroup){
+// 3.2  Find the candidate new composition one roll from current composition that contributes
+//        to the completion of target composition. for composition with two dice with same occurrence,
+//        the candidate new composition add 1 to the first dice index, and the expected turn would be
+//        multiplied later, as the two composition are interchangeable.
+//      Ex. for target_composition = {5, 5, 4, 2,1}, current_composition = {3, 2, 2, 0, 0}
+//        candidates are {4, 2, 2, 0, 0}, {3, 3, 2, 0, 0}, and {3, 2, 2, 1, 0}. Add 1 is added to the
+//        first slot that starts a new same occurrence. This make sure the slot increased will not exceed
+//        the slot before it, and when they get to the same occurrence, they can be interchanged.
+void generateCandidate (const vector<int> &current_composition, const vector<int> &target_composition, int group_length,
+                       vector<vector<int> > &returned_candidate_compositions, vector<int> &returned_candidate_adding_at) {
+  int last_slot_occurrence = -1;
+  for (int slot = 0; slot < group_length; ++slot) {
+    bool slot_has_new_occurrence = current_composition[slot] != last_slot_occurrence;
+    bool slot_not_full = current_composition[slot] + 1 <= target_composition[slot];
+    bool slot_need_increment = slot_has_new_occurrence && slot_not_full;
 
-  bool isCompleted = true;
-  for(int i = 0 ; i < groupLength; ++i){
-    if(currentGroup[i] != targetGroup[i]) isCompleted = false;
-  }
-  if(isCompleted == true) return 0;
+    if (slot_need_increment) {
+      vector<int> new_composition(group_length);
+      new_composition = current_composition;
+      new_composition[slot] ++;
+      returned_candidate_adding_at.push_back(slot);
 
-  // 1. create vector of descending cases, sort them
-  vector<vector<int> > candidateTargetGroup;
-  vector<int> progressIndex;
-  int currentOccurrence = currentGroup[0];
-  for(int i = 0; i < groupLength; ++i){
-    if((i == 0 || currentGroup[i] != currentOccurrence) && currentGroup[i] + 1 <= targetGroup[i]){
-      vector<int> newCandidate(groupLength);
-      for(int j = 0; j < groupLength; ++j){
-        newCandidate[j] = currentGroup[j];
-      }
-      newCandidate[i] ++;
-      currentOccurrence = currentGroup[i];
-      candidateTargetGroup.push_back(newCandidate);
-      progressIndex.push_back(i);
+      last_slot_occurrence = current_composition[slot];
+      returned_candidate_compositions.push_back(new_composition);
+
     }
   }
-
-  // 2. iterate through descending cases
-  // 2.1 search from has map, if not found dive in
-  // 2,2 calculate expected value by x = 1 + sigma(p i * e i) / sigma (p i)
-
-  double sumPiEi = 0;
-  double sumPi = 0;
-  double probabilityUnit = 1.0 / numberOfFace;
-
-
-//  cout << "unit = " << probabilityUnit << endl;
-  for(int i = 0; i < candidateTargetGroup.size(); ++i){
-
-    double Ei = 0;
-    if(expectedValueHash.find(candidateTargetGroup[i]) != expectedValueHash.end()){
-      Ei = expectedValueHash[candidateTargetGroup[i]];
-    }else{
-      Ei = calculateBestAverage(candidateTargetGroup[i], groupLength, numberOfFace, expectedValueHash, targetGroup);
-      expectedValueHash[candidateTargetGroup[i]] = Ei;
-    }
-
-    int PiN = 0;
-    int currentValuePostUpdate = candidateTargetGroup[i][progressIndex[i]];
-    if(currentValuePostUpdate == 1){
-      PiN = numberOfFace;
-      for(int j = 0; j < groupLength; ++j){
-        if(currentGroup[j] != 0){
-          PiN --;
-        }
-      }
-    }else{
-      for(int j = 0; j < groupLength; ++j){
-        if(currentGroup[j] == currentValuePostUpdate - 1){
-          PiN ++;
-        }
-      }
-    }
-
-    sumPi += PiN * probabilityUnit;
-    sumPiEi += PiN * probabilityUnit * Ei;
-
-  }
-
-  double currentResult = (1.0 + sumPiEi ) / sumPi;
-
-//  cout << "currentCandidate: \n";
-//  for(int i = 0; i < candidateTargetGroup.size(); ++i){
-//    for(int j = 0; j < groupLength; ++j){
-//      cout << candidateTargetGroup[i][j] << " " ;
-//    }
-//    cout << endl;
-//  }
-//  cout << "currentResult: " << currentResult << "\n";
-  // 3. return
-
-
-  return currentResult;
 }
 
-void solve(){
-  int numberOfDice, numberOfFace, numberOfGroup;
-  cin >> numberOfDice >> numberOfFace >> numberOfGroup;
-  vector<int> targetGroup;
-  targetGroup.resize(numberOfGroup, 0);
-  for(int i = 0; i < numberOfGroup; ++i){
-    int j = 0;
-    cin >> j;
-    targetGroup[i] = j;
-  }
-  sort(targetGroup.begin(), targetGroup.end(), greater<int>());
+// 3.3.2 Count number of slots with same occurrence that can interchange with the slot's increment
+int getNumInterchangableSlot (const vector<int> &current_composition, int slot_value_after_update, int group_length, int num_face) {
+  int num_same_count_slot = 0;
+  if (slot_value_after_update == 1) {
+    // 3.3.2.1  If slot is to increase to 1, any empty slot can be used
+    int non_empty_slot = 0;
+    for (int j = 0; j < group_length; ++j){
+      if (current_composition[j] != 0) non_empty_slot ++;
+    }
 
-  vector<int> emptySet(numberOfGroup, 0);
-  map<vector<int>, double> expectedValueHash;
-  double ans = calculateBestAverage(emptySet, targetGroup.size(), numberOfFace, expectedValueHash, targetGroup);
+    num_same_count_slot = num_face - non_empty_slot;
+
+  } else {
+    // 3.3.2.2  If slot is to increase to k more than 1, only slot with k - 1 originally can be used
+    for (int j = 0; j < group_length; ++j) {
+      int slot_value_before_update = slot_value_after_update - 1;
+      if (current_composition[j] == slot_value_before_update) {
+        num_same_count_slot ++;
+      }
+    }
+
+  }
+  return num_same_count_slot;
+}
+
+// 3. Calculate best average from an empty partition set
+double calculateBestAverage (vector<int> &current_composition, int group_length, int num_face,
+                            map<vector<int>, double> &expected_value_cache, vector<int> &target_composition) {
+
+  // 3.1  Check if the composition is completed, if completed, no rolling is needed, return 0
+  bool is_completed = true;
+  for (int i = 0 ; i < group_length; ++i) {
+    if (current_composition[i] != target_composition[i]) is_completed = false;
+  }
+  if (is_completed) return 0;
+
+  // 3.2  Find the candidate new composition one roll from current composition that contributes
+  vector<vector<int> > candidate_compositions;
+  vector<int> candidate_adding_at;
+  generateCandidate(current_composition, target_composition, group_length, candidate_compositions, candidate_adding_at);
+
+  // 3.3  Calculate expected value of candidate composition for x = 1 + sigma(P_i * E_i) / sigma (P_i)
+  double sigma_Pi = 0;
+  double sigma_Pi_Ei = 0;
+  double one_over_num_face = 1.0 / num_face;
+
+  for (int i = 0; i < candidate_compositions.size(); ++i) {
+    // 3.3.1 Try every candidate for their expected turn E_i
+    double candidate_expected_turn = 0;
+    if (expected_value_cache.find(candidate_compositions[i]) != expected_value_cache.end()) {
+      candidate_expected_turn = expected_value_cache[candidate_compositions[i]];
+    } else {
+      candidate_expected_turn = calculateBestAverage(candidate_compositions[i], group_length, num_face, expected_value_cache, target_composition);
+      expected_value_cache[candidate_compositions[i]] = candidate_expected_turn;
+    }
+
+    // 3.3.2 Count number of slots with same occurrence that can interchange with the slot's increment
+    int slot_value_after_update = candidate_compositions[i][candidate_adding_at[i]];
+    int num_same_count_slot = getNumInterchangableSlot(current_composition, slot_value_after_update, group_length, num_face);
+
+    // 3.3.3 Update Sigma(P_i * E_i) and Sigma(P_i) for x = 1 + sigma(P_i * E_i) / sigma (P_i)
+    sigma_Pi += num_same_count_slot * one_over_num_face;
+    sigma_Pi_Ei += num_same_count_slot * one_over_num_face * candidate_expected_turn;
+  }
+
+  // 3.4 Run x = 1 + sigma(P_i * E_i) / sigma (P_i)
+  double expected_turn = (1.0 + sigma_Pi_Ei ) / sigma_Pi;
+  return expected_turn;
+}
+
+void solve() {
+
+  // 1. Get input
+  int num_dice, num_face, num_group;
+  cin >> num_dice >> num_face >> num_group;
+  vector<int> target_grouping(num_group);
+  for (int i = 0; i < num_group; ++i) {
+    int in = 0;
+    cin >> in;
+    target_grouping[i] = in;
+  }
+
+  // 2. Sort target grouping. So the greatest grouping will be in front, and partitioning
+  //      can be kept from big partition to small partition
+  sort(target_grouping.begin(), target_grouping.end(), greater<int>());
+
+  // 3. calculate best average from an empty partition set
+  vector<int> empty_set(num_group, 0);
+  map<vector<int>, double> config_expected_value_cache;
+  double ans = calculateBestAverage(empty_set, target_grouping.size(), num_face, config_expected_value_cache, target_grouping);
 
   cout << setprecision(10) << ans << "\n";
 }
 
-int main(){
+int main() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(0);
+
   int t;
   cin >> t;
-  for(int i = 0; i < t; ++i){
-    cout << "Case #" << i+1 << ": ";
+
+  for (int i = 0; i < t; ++i) {
+    cout << "Case #" << i+1 << ": " ;
     solve();
   }
 }
