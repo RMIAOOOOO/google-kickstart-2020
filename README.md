@@ -37,3 +37,7 @@ The code tries take reference from the top winner of Google Kickstart for cleane
 | G     | 2        | 69%                       |                     |
 | G     | 3        | 7%                        | Prefix sum, binary search |
 | G     | 4        | 3%                        | Expected Value, Dynamic Programming |
+| H     | 1        | 87%                       |                     |
+| H     | 2        | 17%                       | Combinatorics       |
+| H     | 3        | 7%                        | Sorting             |
+| H     | 4        | 6%                        | Shortest Path       |
