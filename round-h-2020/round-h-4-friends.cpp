@@ -1,140 +1,78 @@
-#include<iostream>
-#include<vector>
-#include<string>
-#include<algorithm>
-#include<sstream>
-#include<queue>
-#include<iostream>
-#include<map>
+#include <bits/stdc++.h>
 using namespace std;
 
-int getCost(int firstCharIndex, int secondCharIndex, const vector<vector<bool> > &namesMapping){
-  if(firstCharIndex == secondCharIndex) return 0;
-  vector<bool> explored(26, false);
-  queue<int> queuedIndex;
-  int depth = 1;
-  explored[firstCharIndex] = true;
-  for(int i = 0; i < 26; ++i){
-    if(namesMapping[firstCharIndex][i] == 1 && i != firstCharIndex ){
-      queuedIndex.push(i);
-      explored[i] = true;
-    }
-  }
-  while(!queuedIndex.empty()){
-    queue<int> newQueue;
-    while(!queuedIndex.empty()){
-      int currentIndex = queuedIndex.front();
-      if(currentIndex == secondCharIndex) return depth;
-      queuedIndex.pop();
-      explored [currentIndex] = true;
-      for(int i = 0; i < 26; ++i){
-        if(!explored[i] && namesMapping[currentIndex][i] == true){
-          newQueue.push(i);
-          explored[i] = true;
-        }
-      }
-    }
-    depth ++;
+void solve() {
 
-    while(!newQueue.empty()){
-      int newIndex = newQueue.front();
-      newQueue.pop();
-      queuedIndex.push(newIndex);
-    }
-  }
-  return 999;
-};
-
-void solve(){
-
-  // 1. Get Input
+  // 1. Get input
   int N, Q;
   cin >> N >> Q ;
-
-
   vector<string> names(N);
   vector<pair<int, int> > queries(Q);
-  for(int i = 0 ; i < N; ++i){
-    string in;
-    cin >> in;
-    names[i] = in;
+  for (int i = 0 ; i < N; ++i) {
+    cin >> names[i];
   }
-
-  for(int i = 0 ; i < Q; ++i){
+  for (int i = 0 ; i < Q; ++i) {
     int a, b;
     cin >> a >> b;
     queries[i] = make_pair(a-1, b-1);
   }
 
-  // 2. Create 26 * 26 friend list
-  vector<vector<bool> > namesMapping(26);
-  for(int i = 0; i < 26; ++i){
-    namesMapping[i].resize(0);
-    namesMapping[i].resize(26, 0);
-  }
-
-  // 2.5 Create character to character cost table
-  vector<vector<int> > characterToCharacterLookupTable(26);
-  for(int i = 0; i < 26; ++i){
-    characterToCharacterLookupTable[i].resize(0);
-    characterToCharacterLookupTable[i].resize(26, 999);
-  }
-
-
-  for(int i = 0; i < N; ++i){
-    int nameLen = names[i].length();
-    for(int j = 0; j < nameLen - 1; ++ j){
-      for(int k = j; k < nameLen; ++ k){
+  // 2. Create a char to char distance lookup table.
+  vector<vector<int> > char_to_char_distance(26, vector<int>(26, 999));
+    // 2.1  Initialize it by lowering characters appearing in same name to 1, and same character to 0.
+  for (int i = 0; i < N; ++i) {
+    for (int j = 0; j < names[i].length() - 1; ++ j) {
+      for (int k = j + 1; k < names[i].length(); ++ k) {
         int firstCharIndex = names[i][j] - 'A';
         int secondCharIndex = names[i][k] - 'A';
-        namesMapping[firstCharIndex][secondCharIndex] = 1;
-        namesMapping[secondCharIndex][firstCharIndex] = 1;
+        char_to_char_distance[firstCharIndex][secondCharIndex] = 1;
+        char_to_char_distance[secondCharIndex][firstCharIndex] = 1;
       }
     }
   }
+  for (int i = 0; i < 26; ++i) char_to_char_distance[i][i] = 0;
 
-  for(int i = 0; i < 26; ++i){
-      for(int j = 0; j < 26; ++j){
-          characterToCharacterLookupTable[i][j] = getCost(i, j, namesMapping);
+    // 2.2 Find all pairs shortest path distance with Floyd-Warshall algorithm
+  for (int k = 0; k < 26; ++k) {
+      for (int i = 0; i < 26; ++i) {
+          for (int j = 0; j < 26; ++j) {
+            char_to_char_distance[i][j] = min(char_to_char_distance[i][j], char_to_char_distance[i][k] + char_to_char_distance[k][j]);
+          }
       }
   }
 
-  for(int i = 0; i < 26; ++i){
-      for(int j = 0; j < 26; ++j){
-          //cout << characterToCharacterLookupTable[i][j] << " ";
-      }
-      //cout << "\n";
-  }
+  // 3. for every pair of query, iterate through every pair of character, update the closest distance
+  for (int i = 0; i < Q; ++i) {
 
-  // 3. for every name, BFS every pair of words, output the shortest path
-  for(int i = 0; i < Q; ++i){
-    string firstPerson = names[queries[i].first];
-    string secondPerson = names[queries[i].second];
-    int firstLen = firstPerson.length();
-    int secondLen = secondPerson.length();
-    int bestScore = 999;
-    for(int j = 0; j < firstLen; ++j){
-      for(int k = 0; k < secondLen; ++k){
-        int firstCharIndex = firstPerson[j] - 'A';
-        int secondCharIndex = secondPerson[k] - 'A';
-        int cost = characterToCharacterLookupTable[firstCharIndex][secondCharIndex];
-        bestScore = min(cost, bestScore);
+    string first_name = names[queries[i].first];
+    string second_name = names[queries[i].second];
+
+    int answer = 999;
+    for (int j = 0; j < first_name.length(); ++j) {
+      for (int k = 0; k < second_name.length(); ++k) {
+        int first_char_index = first_name[j] - 'A';
+        int second_char_index = second_name[k] - 'A';
+        int cost = char_to_char_distance[first_char_index][second_char_index];
+        answer = min(cost, answer);
       }
     }
-    if(bestScore == 999 ) cout << -1 << " ";
-    else {
-      cout << bestScore + 2  << " ";
-    }
+
+    answer = answer == 999 ? -1 : answer + 2;
+    cout << answer << " ";
 
   }
   cout << "\n";
 }
 
-int main(){
+int main() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(0);
+
   int t;
   cin >> t;
-  for(int i = 0; i < t; ++i){
-    cout << "Case #" << i+1 << ": ";
+
+  for (int i = 0; i < t; ++i) {
+    cout << "Case #" << i+1 << ": " ;
     solve();
   }
 }
